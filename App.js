@@ -1,13 +1,26 @@
-import { NavigationContainer } from "@react-navigation/native";
-import { GestureHandlerRootView } from "react-native-gesture-handler";
-import Navigation from "./app/navigation/Navigation";
+import React from 'react';
+import { NavigationContainer } from '@react-navigation/native';
+import { createStackNavigator } from '@react-navigation/stack';
+import BottomTabNavigator from './app/navigation/BottomTabNavigator';
+import ResponderEjercicio from './app/features/ejercicios/screens/ResponderEjercicio';
+
+const Stack = createStackNavigator();
 
 export default function App() {
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
-      <NavigationContainer>
-        <Navigation />
-      </NavigationContainer>
-    </GestureHandlerRootView>
+    <NavigationContainer>
+      <Stack.Navigator>
+        <Stack.Screen 
+          name="Main" 
+          component={BottomTabNavigator} 
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen 
+          name="ResponderEjercicio" 
+          component={ResponderEjercicio}
+          options={{ headerShown: false }}
+        />
+      </Stack.Navigator>
+    </NavigationContainer>
   );
 }

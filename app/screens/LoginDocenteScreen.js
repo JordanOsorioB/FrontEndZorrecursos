@@ -25,6 +25,16 @@ export default function LoginDocenteScreen({ navigation }) {
       return;
     }
 
+    // Credenciales provisionales
+    if (usuario === "Zorrecursos" && password === "1234") {
+      Alert.alert(
+        "✅ Inicio de sesión exitoso",
+        "Bienvenido a Zorrecursos"
+      );
+      navigation.replace("MainApp");
+      return;
+    }
+
     try {
       const response = await fetch(`${API_BASE_URL}/auth/login`, {
         method: "POST",
@@ -56,9 +66,9 @@ export default function LoginDocenteScreen({ navigation }) {
 
       // 🔹 Redirigir según el rol
       if (data.user.role === "TEACHER") {
-        navigation.replace("DrawerNavigator");
+        navigation.replace("MainApp");
       } else if (data.user.role === "ADMIN") {
-        navigation.replace("DrawerNavigator");
+        navigation.replace("MainApp");
       } else {
         setError("⚠️ No tienes permisos para acceder.");
       }
