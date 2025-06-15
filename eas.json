@@ -1,0 +1,14 @@
+{
+  "cli": {
+    "version": ">= 16.10.1"
+  },
+  "build": {
+    "preview": {
+      "android": {
+        "buildType": "apk",
+        "gradleCommand": ":app:assembleRelease",
+        "withoutCredentials": true
+      }
+    }
+  }
+}

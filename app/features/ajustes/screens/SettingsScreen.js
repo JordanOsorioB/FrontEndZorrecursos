@@ -1,8 +1,10 @@
 import React from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
+import { useAuth } from '../../../AuthContext';
 
 export default function SettingsScreen({ navigation }) {
+  const { logout } = useAuth();
   const opciones = [
     {
       id: '1',
@@ -12,9 +14,9 @@ export default function SettingsScreen({ navigation }) {
     },
     {
       id: '2',
-      titulo: 'Notificaciones',
-      icono: 'notifications',
-      accion: () => navigation.navigate('Notificaciones')
+      titulo: 'Recompensas',
+      icono: 'emoji-events',
+      accion: () => navigation.navigate('Recompensas')
     },
     {
       id: '3',
@@ -56,6 +58,13 @@ export default function SettingsScreen({ navigation }) {
             </View>
           </Pressable>
         ))}
+        {/* Botón de cerrar sesión */}
+        <Pressable style={styles.logoutButton} onPress={logout}>
+          <View style={styles.optionContent}>
+            <MaterialIcons name="logout" size={24} color="#c0392b" />
+            <Text style={styles.logoutText}>Cerrar sesión</Text>
+          </View>
+        </Pressable>
       </ScrollView>
     </View>
   );
@@ -92,5 +101,19 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#333',
     marginLeft: 15,
+  },
+  logoutButton: {
+    backgroundColor: '#fff',
+    borderRadius: 10,
+    padding: 15,
+    marginTop: 30,
+    elevation: 2,
+  },
+  logoutText: {
+    flex: 1,
+    fontSize: 16,
+    color: '#c0392b',
+    marginLeft: 15,
+    fontWeight: 'bold',
   },
 }); 

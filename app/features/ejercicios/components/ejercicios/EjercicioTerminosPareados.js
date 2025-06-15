@@ -3,16 +3,18 @@ import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-nati
 import { MaterialIcons } from '@expo/vector-icons';
 import { COLOR_PALETTE } from '../../constants/unitColors';
 
-const EjercicioTerminosPareados = ({ ejercicio, onComplete }) => {
+const EjercicioTerminosPareados = ({ ejercicio, onComplete, onBuyAttempt, coins = 0, comprando = false, buyError = '' }) => {
   const [terminos, setTerminos] = useState([]);
   const [definiciones, setDefiniciones] = useState([]);
   const [seleccionados, setSeleccionados] = useState([]);
-  const [ultimoTipoSeleccionado, setUltimoTipoSeleccionado] = useState(null);
-  const [colorActual, setColorActual] = useState(null);
+  const [paresUsuario, setParesUsuario] = useState([]);
+  const [ultimoSeleccionado, setUltimoSeleccionado] = useState(null);
   const [mostrarResultado, setMostrarResultado] = useState(false);
   const [resultado, setResultado] = useState(null);
-  const [contadorPorColor, setContadorPorColor] = useState({});
-  const [intentos, setIntentos] = useState(0);
+  // --- NUEVA LÓGICA DE INTENTOS ---
+  const intentosRestantes = ejercicio?.estado?.attempts ?? ejercicio?.estado?.intentos ?? 0;
+  const intentosUsados = ejercicio?.estado?.correctAnswers ?? ejercicio?.estado?.respuestasCorrectas ?? 0;
+  const estaBloqueado = intentosRestantes === 0;
 
   // Colores para los pares seleccionados
   const coloresPares = [
@@ -20,232 +22,190 @@ const EjercicioTerminosPareados = ({ ejercicio, onComplete }) => {
     '#F3E5F5', // Púrpura claro
     '#E8F5E9', // Verde claro
     '#FFF3E0', // Naranja claro
+    '#FFECB3', // Amarillo claro
+    '#FFCDD2', // Rojo claro
+    '#B2EBF2', // Celeste claro
+    '#D1C4E9', // Lila claro
   ];
 
   useEffect(() => {
-    // Mezclar términos y definiciones al inicio
-    const { pares: paresOriginales } = ejercicio.contenido.terminosPareados;
-    
+    const paresOriginales = ejercicio?.contenido?.terminosPareados?.pares || [];
     // Crear arrays separados para términos y definiciones
     const terminosArray = paresOriginales.map(p => ({ 
       id: p.id, 
       texto: p.termino, 
-      color: null,
-      seleccionado: false,
       emparejado: false,
-      parCorrecto: p.definicion
+      colorIndex: null
     }));
-    
     const definicionesArray = paresOriginales.map(p => ({ 
       id: p.id, 
       texto: p.definicion, 
-      color: null,
-      seleccionado: false,
       emparejado: false,
-      parCorrecto: p.termino
+      colorIndex: null
     }));
-    
     // Mezclar aleatoriamente
-    const terminosMezclados = [...terminosArray].sort(() => Math.random() - 0.5);
-    const definicionesMezcladas = [...definicionesArray].sort(() => Math.random() - 0.5);
-    
-    setTerminos(terminosMezclados);
-    setDefiniciones(definicionesMezcladas);
-    setContadorPorColor({});
+    setTerminos([...terminosArray].sort(() => Math.random() - 0.5));
+    setDefiniciones([...definicionesArray].sort(() => Math.random() - 0.5));
+    setSeleccionados([]);
+    setParesUsuario([]);
+    setUltimoSeleccionado(null);
+    setMostrarResultado(false);
+    setResultado(null);
   }, [ejercicio]);
 
-  const obtenerSiguienteColor = () => {
-    // Encontrar el primer color que tenga menos de 2 elementos
-    return coloresPares.find(color => !contadorPorColor[color] || contadorPorColor[color] < 2) || coloresPares[0];
-  };
-
   const handleSeleccion = (item, tipo) => {
-    if (mostrarResultado) return;
-    
-    // Si el item ya está emparejado, no hacer nada
+    if (mostrarResultado || estaBloqueado) return;
+    // Si ya está emparejado, no permitir seleccionar
     if (item.emparejado) return;
-
-    // Verificar si el item ya está seleccionado
-    const yaSeleccionado = seleccionados.find(s => s.id === item.id);
-    if (yaSeleccionado) {
-      // Si ya está seleccionado, lo quitamos
-      setSeleccionados(prev => prev.filter(s => s.id !== item.id));
-      setContadorPorColor(prev => ({
-        ...prev,
-        [yaSeleccionado.color]: (prev[yaSeleccionado.color] || 0) - 1
-      }));
-      
-      if (tipo === 'termino') {
-        setTerminos(prev => prev.map(t => 
-          t.id === item.id ? { ...t, color: null, seleccionado: false } : t
-        ));
-      } else {
-        setDefiniciones(prev => prev.map(d => 
-          d.id === item.id ? { ...d, color: null, seleccionado: false } : d
-        ));
-      }
-      
-      // Si era el último seleccionado, actualizamos el último tipo
-      if (seleccionados.length > 0 && seleccionados[seleccionados.length - 1].id === item.id) {
-        setUltimoTipoSeleccionado(null);
-        setColorActual(null);
-      }
-      
+    // Si ya está seleccionado, deselecciona
+    if (seleccionados.find(s => s.id === item.id && s.tipo === tipo)) {
+      setSeleccionados([]);
+      setUltimoSeleccionado(null);
       return;
     }
-
-    // Verificar si estamos seleccionando el mismo tipo que el último
-    if (ultimoTipoSeleccionado === tipo) {
-      // No permitir seleccionar dos términos o dos definiciones seguidos
+    // Si no hay selección previa, selecciona el actual
+    if (!ultimoSeleccionado) {
+      setSeleccionados([{ id: item.id, tipo }]);
+      setUltimoSeleccionado({ id: item.id, tipo });
       return;
     }
-
-    // Determinar el color a usar
-    let colorParaUsar = colorActual;
-    
-    // Si no hay color actual o el color actual ya tiene 2 elementos, obtener nuevo color
-    if (!colorParaUsar || (contadorPorColor[colorParaUsar] || 0) >= 2) {
-      colorParaUsar = obtenerSiguienteColor();
-      setColorActual(colorParaUsar);
-    }
-
-    // Actualizar el contador de colores
-    setContadorPorColor(prev => ({
-      ...prev,
-      [colorParaUsar]: (prev[colorParaUsar] || 0) + 1
-    }));
-
-    // Agregar la nueva selección
-    const nuevoSeleccionado = {
-      id: item.id,
-      tipo,
-      color: colorParaUsar
-    };
-    
-    setSeleccionados(prev => [...prev, nuevoSeleccionado]);
-    setUltimoTipoSeleccionado(tipo);
-
-    // Actualizar el color en el array correspondiente
-    if (tipo === 'termino') {
-      setTerminos(prev => prev.map(t => 
-        t.id === item.id ? { ...t, color: colorParaUsar, seleccionado: true } : t
+    // Si hay una selección previa de tipo diferente, forma un par
+    if (ultimoSeleccionado.tipo !== tipo) {
+      // Determinar color para el nuevo par
+      const colorIndex = paresUsuario.length % coloresPares.length;
+      // Guarda el par
+      setParesUsuario(prev => [...prev, {
+        terminoId: tipo === 'definicion' ? ultimoSeleccionado.id : item.id,
+        definicionId: tipo === 'definicion' ? item.id : ultimoSeleccionado.id,
+        colorIndex
+      }]);
+      // Marca ambos como emparejados y con color
+      setTerminos(prev => prev.map(t =>
+        t.id === (tipo === 'definicion' ? ultimoSeleccionado.id : item.id)
+          ? { ...t, emparejado: true, colorIndex }
+          : t
       ));
-    } else {
-      setDefiniciones(prev => prev.map(d => 
-        d.id === item.id ? { ...d, color: colorParaUsar, seleccionado: true } : d
+      setDefiniciones(prev => prev.map(d =>
+        d.id === (tipo === 'definicion' ? item.id : ultimoSeleccionado.id)
+          ? { ...d, emparejado: true, colorIndex }
+          : d
       ));
+      setSeleccionados([]);
+      setUltimoSeleccionado(null);
+      return;
     }
-    
-    // Si completamos un par (término + definición), emparejar ambos elementos
-    if (seleccionados.length % 2 === 1) {
-      // Emparejar el término y la definición actuales
-      const parCompleto = [...seleccionados, nuevoSeleccionado];
-      
-      // Marcar ambos elementos como emparejados
-      if (tipo === 'termino') {
-        // Buscar la definición seleccionada
-        const definicionSeleccionada = parCompleto.find(s => s.tipo === 'definicion');
-        if (definicionSeleccionada) {
-          setDefiniciones(prev => prev.map(d => 
-            d.id === definicionSeleccionada.id ? { ...d, emparejado: true } : d
-          ));
-        }
-        setTerminos(prev => prev.map(t => 
-          t.id === item.id ? { ...t, emparejado: true } : t
-        ));
-      } else {
-        // Buscar el término seleccionado
-        const terminoSeleccionado = parCompleto.find(s => s.tipo === 'termino');
-        if (terminoSeleccionado) {
-          setTerminos(prev => prev.map(t => 
-            t.id === terminoSeleccionado.id ? { ...t, emparejado: true } : t
-          ));
-        }
-        setDefiniciones(prev => prev.map(d => 
-          d.id === item.id ? { ...d, emparejado: true } : d
-        ));
-      }
-      
-      // Resetear el color actual para el siguiente par
-      setColorActual(null);
-    }
+    // Si selecciona dos del mismo tipo, reemplaza la selección
+    setSeleccionados([{ id: item.id, tipo }]);
+    setUltimoSeleccionado({ id: item.id, tipo });
   };
 
   const verificarPares = () => {
-    setIntentos(prev => prev + 1);
-    const paresCorrectos = ejercicio.contenido.terminosPareados.pares;
+    if (estaBloqueado) return;
+    const nuevoIntentosRestantes = intentosRestantes - 1;
+    const paresCorrectos = ejercicio?.contenido?.terminosPareados?.pares || [];
     let correctos = 0;
     let incorrectos = 0;
-
-    // Agrupar selecciones por color
-    const seleccionesPorColor = seleccionados.reduce((acc, sel) => {
-      if (!acc[sel.color]) acc[sel.color] = [];
-      acc[sel.color].push(sel);
-      return acc;
-    }, {});
-
-    // Verificar cada grupo de selecciones
-    Object.values(seleccionesPorColor).forEach(grupo => {
-      if (grupo.length === 2) {
-        const [sel1, sel2] = grupo;
-        const parCorrecto = paresCorrectos.find(p => 
-          (p.id === sel1.id && sel1.tipo === 'termino') || 
-          (p.id === sel2.id && sel2.tipo === 'termino')
-        );
-
-        if (parCorrecto && 
-            ((sel1.tipo === 'termino' && sel2.id === parCorrecto.id) || 
-             (sel2.tipo === 'termino' && sel1.id === parCorrecto.id))) {
-          correctos++;
-        } else {
-          incorrectos++;
-        }
-      }
+    paresUsuario.forEach(par => {
+      const parCorrecto = paresCorrectos.find(p =>
+        (p.id === par.terminoId && p.definicion === definiciones.find(d => d.id === par.definicionId)?.texto && p.termino === terminos.find(t => t.id === par.terminoId)?.texto)
+      );
+      if (parCorrecto) correctos++;
+      else incorrectos++;
     });
-
     const totalPares = paresCorrectos.length;
     const porcentaje = (correctos / totalPares) * 100;
     const esCorrecto = porcentaje >= 70;
-
-    const resultadoFinal = {
-      correctos,
-      incorrectos,
-      total: totalPares,
-      porcentaje,
-      esCorrecto,
-      intentos
-    };
-
-    setResultado(resultadoFinal);
+    setResultado({ correctos, incorrectos, total: totalPares, porcentaje, esCorrecto });
     setMostrarResultado(true);
-
     if (esCorrecto) {
       onComplete({
-        completado: true,
-        intentos: intentos,
-        respuestasCorrectas: correctos,
-        experienciaGanada: ejercicio.experienciaTotal
+        completionStatus: 'CORRECT',
+        attempts: nuevoIntentosRestantes,
+        correctAnswers: intentosUsados + 1,
+        experienceEarned: ejercicio.experienciaTotal,
+        respuesta: JSON.stringify(paresUsuario),
+        locked: nuevoIntentosRestantes === 0 ? true : ejercicio?.estado?.bloqueado ?? false
+      });
+    } else {
+      onComplete({
+        completionStatus: 'INCORRECT',
+        attempts: nuevoIntentosRestantes,
+        correctAnswers: intentosUsados + 1,
+        experienceEarned: 0,
+        respuesta: JSON.stringify(paresUsuario),
+        locked: nuevoIntentosRestantes === 0 ? true : ejercicio?.estado?.bloqueado ?? false
       });
     }
   };
 
   const getEstiloItem = (item, tipo) => {
-    if (!item.seleccionado) return styles.item;
-
-    return {
-      ...styles.item,
-      backgroundColor: item.color,
-      borderColor: item.color,
-      borderWidth: 2
-    };
+    // Si está emparejado, busca el color del par
+    if (item.emparejado && item.colorIndex !== null) {
+      if (mostrarResultado) {
+        // Busca el par del usuario
+        const parUsuario = paresUsuario.find(par =>
+          (tipo === 'termino' && par.terminoId === item.id) ||
+          (tipo === 'definicion' && par.definicionId === item.id)
+        );
+        if (parUsuario) {
+          const paresCorrectos = ejercicio?.contenido?.terminosPareados?.pares || [];
+          const termino = terminos.find(t => t.id === parUsuario.terminoId);
+          const definicion = definiciones.find(d => d.id === parUsuario.definicionId);
+          const esCorrecto = paresCorrectos.some(p =>
+            p.termino === termino.texto && p.definicion === definicion.texto
+          );
+          return {
+            ...styles.item,
+            backgroundColor: esCorrecto ? '#C8E6C9' : '#FFCDD2',
+            borderColor: esCorrecto ? '#388E3C' : '#D32F2F',
+            borderWidth: 2
+          };
+        }
+      }
+      // Antes de calificar, solo muestra el color del par
+      return {
+        ...styles.item,
+        backgroundColor: coloresPares[item.colorIndex],
+        borderColor: coloresPares[item.colorIndex],
+        borderWidth: 2
+      };
+    }
+    // Si está seleccionado
+    if (seleccionados.find(s => s.id === item.id && s.tipo === tipo)) {
+      return {
+        ...styles.item,
+        backgroundColor: '#FFF9C4',
+        borderColor: '#FFEB3B',
+        borderWidth: 2
+      };
+    }
+    return styles.item;
   };
 
   return (
     <ScrollView style={styles.container}>
       <Text style={styles.instruccion}>{ejercicio.contenido.terminosPareados.instruccion}</Text>
-      
-      <Text style={styles.intentos}>Intentos: {intentos}</Text>
-
+      <Text style={styles.intentos}>Intentos restantes: {intentosRestantes}</Text>
+      {/* Botón para comprar intento si no hay intentos y no está completado */}
+      {intentosRestantes === 0 && (!resultado || !resultado.esCorrecto) && (
+        <View style={{ alignItems: 'center', marginBottom: 16 }}>
+          <TouchableOpacity
+            style={[
+              styles.botonComprar,
+              comprando && styles.botonComprarDeshabilitado
+            ]}
+            onPress={onBuyAttempt}
+            disabled={comprando}
+          >
+            <MaterialIcons name="monetization-on" size={22} color="#FFD700" style={{marginRight:6}} />
+            <Text style={{ color: '#321c69', fontWeight: 'bold', fontSize: 15 }}>
+              {comprando ? 'Comprando...' : 'Comprar intento (1 coin)'}
+            </Text>
+          </TouchableOpacity>
+          <Text style={{ fontSize: 14, color: '#321c69', marginTop: 4 }}>Coins disponibles: {coins}</Text>
+          {buyError ? <Text style={{ color: 'red', marginTop: 4 }}>{buyError}</Text> : null}
+        </View>
+      )}
       <View style={styles.contenedorPrincipal}>
         <View style={styles.contenedorPares}>
           <View style={styles.columna}>
@@ -255,13 +215,12 @@ const EjercicioTerminosPareados = ({ ejercicio, onComplete }) => {
                 key={termino.id}
                 style={getEstiloItem(termino, 'termino')}
                 onPress={() => handleSeleccion(termino, 'termino')}
-                disabled={mostrarResultado || termino.emparejado}
+                disabled={mostrarResultado || termino.emparejado || estaBloqueado}
               >
                 <Text style={styles.textoItem}>{termino.texto}</Text>
               </TouchableOpacity>
             ))}
           </View>
-
           <View style={styles.columna}>
             <Text style={[styles.tituloColumna, { color: '#FF9800', backgroundColor: '#321c69' }]}>Definiciones</Text>
             {definiciones.map((definicion) => (
@@ -269,18 +228,18 @@ const EjercicioTerminosPareados = ({ ejercicio, onComplete }) => {
                 key={definicion.id}
                 style={getEstiloItem(definicion, 'definicion')}
                 onPress={() => handleSeleccion(definicion, 'definicion')}
-                disabled={mostrarResultado || definicion.emparejado}
+                disabled={mostrarResultado || definicion.emparejado || estaBloqueado}
               >
                 <Text style={styles.textoItem}>{definicion.texto}</Text>
               </TouchableOpacity>
             ))}
           </View>
         </View>
-
         {!mostrarResultado ? (
           <TouchableOpacity 
             style={[styles.botonVerificar, { backgroundColor: '#321c69' }]}
             onPress={verificarPares}
+            disabled={paresUsuario.length !== terminos.length || estaBloqueado}
           >
             <Text style={[styles.textoBoton, { color: '#FF9800' }]}>Enviar a calificar</Text>
           </TouchableOpacity>
@@ -386,6 +345,20 @@ const styles = StyleSheet.create({
     marginVertical: 10,
     fontWeight: 'bold',
     paddingHorizontal: 16,
+  },
+  botonComprar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFF8E1',
+    borderRadius: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 18,
+    borderWidth: 1,
+    borderColor: '#FFD700',
+    marginBottom: 2,
+  },
+  botonComprarDeshabilitado: {
+    opacity: 0.5,
   },
 });
 

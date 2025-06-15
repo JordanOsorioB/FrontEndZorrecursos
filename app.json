@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "aprehender-la-escuela",
-    "slug": "aprehender-la-escuela",
+    "name": "Zorrecursos",
+    "slug": "zorrecursos",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -19,10 +19,20 @@
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
-      }
+      },
+      "package": "com.zorrecursos.aprehenderlaescuela",
+      "versionCode": 1,
+      "permissions": [],
+      "allowBackup": true,
+      "softwareKeyboardLayoutMode": "pan"
     },
     "web": {
       "favicon": "./assets/favicon.png"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "fa690c43-5c03-4aa7-b7ea-fc89bdb408cd"
+      }
     }
   }
 }

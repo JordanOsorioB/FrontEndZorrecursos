@@ -57,7 +57,6 @@ export default function ListaContenidos({ navigation }) {
             style={styles.card}
             onPress={() => {
               // Aquí irá la navegación al detalle del contenido
-              console.log('Ver contenido:', contenido.titulo);
             }}
           >
             <View style={styles.iconContainer}>

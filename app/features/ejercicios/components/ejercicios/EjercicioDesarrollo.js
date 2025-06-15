@@ -7,35 +7,45 @@ export default function EjercicioDesarrollo({ ejercicio, onComplete }) {
   const [respuesta, setRespuesta] = useState('');
   const [mostrarResultado, setMostrarResultado] = useState(false);
   const [esCorrecta, setEsCorrecta] = useState(false);
-  const [intentos, setIntentos] = useState(0);
+  const intentosRestantes = ejercicio?.estado?.attempts ?? ejercicio?.estado?.intentos ?? 0;
+  const intentosUsados = ejercicio?.estado?.correctAnswers ?? ejercicio?.estado?.respuestasCorrectas ?? 0;
+  const estaBloqueado = intentosRestantes === 0;
+
+  function normalizar(str) {
+    return str
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase()
+      .trim();
+  }
 
   const validarRespuesta = (texto) => {
-    const respuestaLimpia = texto.toLowerCase().trim();
-    const palabrasRespuesta = respuestaLimpia.split(/\s+/);
-    
-    const palabrasEncontradas = ejercicio.contenido.desarrollo.palabrasClave.filter(
-      palabra => palabrasRespuesta.includes(palabra.toLowerCase())
-    );
-
-    const porcentajeCoincidencia = (palabrasEncontradas.length / ejercicio.contenido.desarrollo.palabrasClave.length) * 100;
-    return porcentajeCoincidencia >= ejercicio.contenido.desarrollo.porcentajeCoincidencia;
+    const respuestaLimpia = normalizar(texto);
+    const claves = ejercicio.contenido.desarrollo.palabrasClave.map(p => normalizar(p));
+    // Si al menos una palabra clave está incluida en la respuesta, es correcto
+    return claves.some(clave => respuestaLimpia.includes(clave));
   };
 
   const handleSubmit = () => {
-    if (respuesta.trim() === '') return;
-    
+    if (respuesta.trim() === '' || estaBloqueado) return;
     Keyboard.dismiss();
-    setIntentos(prev => prev + 1);
-    const correcta = validarRespuesta(respuesta);
-    setEsCorrecta(correcta);
     setMostrarResultado(true);
-    
-    if (correcta) {
+    const nuevaRespuestaCorrecta = validarRespuesta(respuesta);
+    if (nuevaRespuestaCorrecta) {
       onComplete({
-        completado: true,
-        intentos: intentos + 1,
-        respuestasCorrectas: 1,
-        experienciaGanada: ejercicio.experienciaTotal
+        completionStatus: 'CORRECT',
+        attempts: intentosRestantes - 1,
+        correctAnswers: intentosUsados + 1,
+        experienceEarned: ejercicio.experienciaTotal,
+        respuesta
+      });
+    } else {
+      onComplete({
+        completionStatus: 'INCORRECT',
+        attempts: intentosRestantes - 1,
+        correctAnswers: intentosUsados + 1,
+        experienceEarned: 0,
+        respuesta
       });
     }
   };
@@ -45,7 +55,7 @@ export default function EjercicioDesarrollo({ ejercicio, onComplete }) {
       <Text style={styles.enunciado}>
         {ejercicio.contenido.desarrollo.enunciado}
       </Text>
-      <Text style={styles.intentos}>Intentos: {intentos}</Text>
+      <Text style={styles.intentos}>Intentos restantes: {intentosRestantes}</Text>
 
       <View style={styles.inputContainer}>
         <TextInput
@@ -58,7 +68,7 @@ export default function EjercicioDesarrollo({ ejercicio, onComplete }) {
           placeholder="Escribe tu respuesta aquí..."
           value={respuesta}
           onChangeText={setRespuesta}
-          editable={!mostrarResultado}
+          editable={!mostrarResultado && !estaBloqueado}
           placeholderTextColor="#321c69"
         />
       </View>
@@ -88,10 +98,10 @@ export default function EjercicioDesarrollo({ ejercicio, onComplete }) {
         style={[
           styles.botonSubmit,
           { backgroundColor: '#321c69' },
-          (respuesta.trim() === '' || mostrarResultado) && styles.botonSubmitDeshabilitado
+          (respuesta.trim() === '' || mostrarResultado || estaBloqueado) && styles.botonSubmitDeshabilitado
         ]}
         onPress={handleSubmit}
-        disabled={respuesta.trim() === '' || mostrarResultado}
+        disabled={respuesta.trim() === '' || mostrarResultado || estaBloqueado}
       >
         <Text style={[styles.botonSubmitTexto, { color: '#FF9800' }]}>
           {mostrarResultado ? 'Completado' : 'Enviar a calificar'}
