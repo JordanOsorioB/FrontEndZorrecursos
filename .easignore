@@ -8,3 +8,4 @@ npm-debug.log
 .expo-shared
 .DS_Store
 bash.exe.stackdump 
+dist

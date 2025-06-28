@@ -11,7 +11,7 @@ export default function PrivacidadScreen({ navigation }) {
         </TouchableOpacity>
         <Text style={styles.title}>Privacidad</Text>
       </View>
-      <ScrollView style={styles.container}>
+      <ScrollView contentContainerStyle={{ padding: 20 }} style={styles.container}>
         <Text style={styles.sectionTitle}>¿Cómo protegemos tu información?</Text>
         <Text style={styles.text}>
           En Aprehender, tu privacidad es nuestra prioridad. Todos tus datos personales y de progreso académico se almacenan de forma segura y nunca se comparten con terceros sin tu consentimiento.
@@ -56,9 +56,7 @@ const styles = StyleSheet.create({
     color: '#321c69',
   },
   container: {
-    flex: 1,
     backgroundColor: '#fff',
-    padding: 20,
   },
   sectionTitle: {
     fontSize: 17,

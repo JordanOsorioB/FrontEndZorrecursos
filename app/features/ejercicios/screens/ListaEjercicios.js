@@ -265,7 +265,12 @@ export default function ListaEjercicios({ navigation, route }) {
                       setSelectedSubjectId(asig.id);
                     }}
                   >
-                    <Text style={styles.subjectButtonText}>{asig.nombre}</Text>
+                    <Text style={[
+                      styles.subjectButtonText,
+                      (pressedIndex === idx || selectedSubjectId === asig.id) && styles.subjectButtonPressedText
+                    ]}>
+                      {asig.nombre}
+                    </Text>
                   </Pressable>
                 ))}
                 <Pressable style={styles.closeModalButton} onPress={() => setShowAsignaturasModal(false)}>

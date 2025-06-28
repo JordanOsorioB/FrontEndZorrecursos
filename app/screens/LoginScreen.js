@@ -131,6 +131,7 @@ const styles = StyleSheet.create({
     borderColor: "#ccc",
     borderRadius: 5,
     backgroundColor: "#fff",
+    color: '#000',
   },
   passwordContainer: {
     flexDirection: "row",
@@ -145,6 +146,7 @@ const styles = StyleSheet.create({
   passwordInput: {
     flex: 1,
     padding: 10,
+    color: '#000',
   },
   eyeIcon: {
     padding: 5,
